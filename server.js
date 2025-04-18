@@ -8,26 +8,37 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// Helper function to set expiration date
+const setExpirationDate = (res, days) => {
+  const expirationDate = new Date();
+  expirationDate.setDate(expirationDate.getDate() + days);
+  res.setHeader('Expires', expirationDate.toUTCString());
+}
+
 // Cache control middleware
 const cacheControl = (req, res, next) => {
   // Cache static assets for 1 year
   res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+  setExpirationDate(res, 365); // 1 year
   next()
 }
 
 // Serve static files from the dist directory with cache headers
 app.use(express.static(path.join(__dirname, 'dist'), {
   maxAge: '1y',
-  setHeaders: (res, path) => {
-    if (path.endsWith('.html')) {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
       // Don't cache HTML files
       res.setHeader('Cache-Control', 'no-cache')
-    } else if (path.endsWith('.js') || path.endsWith('.css')) {
+      res.setHeader('Expires', '0')
+    } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
       // Cache JS and CSS files for 1 year
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
-    } else if (path.match(/\.(jpg|jpeg|png|gif|ico|svg|webp)$/)) {
+      setExpirationDate(res, 365); // 1 year
+    } else if (filePath.match(/\.(jpg|jpeg|png|gif|ico|svg|webp)$/)) {
       // Cache images for 1 year
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+      setExpirationDate(res, 365); // 1 year
     }
   }
 }))
