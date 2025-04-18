@@ -1,11 +1,36 @@
 const express = require('express')
 const cors = require('cors')
 const axios = require('axios')
+const path = require('path')
 require('dotenv').config()
 
 const app = express()
 app.use(cors())
 app.use(express.json())
+
+// Cache control middleware
+const cacheControl = (req, res, next) => {
+  // Cache static assets for 1 year
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+  next()
+}
+
+// Serve static files from the dist directory with cache headers
+app.use(express.static(path.join(__dirname, 'dist'), {
+  maxAge: '1y',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      // Don't cache HTML files
+      res.setHeader('Cache-Control', 'no-cache')
+    } else if (path.endsWith('.js') || path.endsWith('.css')) {
+      // Cache JS and CSS files for 1 year
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    } else if (path.match(/\.(jpg|jpeg|png|gif|ico|svg|webp)$/)) {
+      // Cache images for 1 year
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    }
+  }
+}))
 
 const LINKEDIN_API_URL = 'https://api.linkedin.com/v2'
 

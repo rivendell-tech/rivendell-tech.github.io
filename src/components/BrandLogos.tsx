@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const brands = [
   {
@@ -50,6 +50,50 @@ const brands = [
 
 const BrandLogos = () => {
   const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const positionRef = useRef(0);
+  const speedRef = useRef(0.3); // pixels per frame
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const track = trackRef.current;
+    
+    if (!container || !track) return;
+    
+    // Calculate the width of a single set of logos
+    const trackWidth = track.scrollWidth / 2;
+    
+    // Set up the CSS for smooth scrolling
+    track.style.width = `${trackWidth * 2}px`;
+    track.style.display = 'flex';
+    track.style.flexWrap = 'nowrap';
+    
+    const animate = () => {
+      if (!isHovered) {
+        positionRef.current -= speedRef.current;
+        
+        // Reset position when we've scrolled one full set of logos
+        if (Math.abs(positionRef.current) >= trackWidth) {
+          positionRef.current = 0;
+        }
+        
+        track.style.transform = `translateX(${positionRef.current}px)`;
+      }
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    // Start the animation
+    animationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isHovered]);
 
   return (
     <section className="py-16 bg-white dark:bg-gray-900 overflow-hidden">
@@ -58,11 +102,15 @@ const BrandLogos = () => {
           Brands We Trust
         </h2>
         
-        <div className="relative">
+        <div 
+          ref={containerRef}
+          className="relative overflow-hidden"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
           <div 
-            className={`flex space-x-8 ${!isHovered ? 'animate-[scroll_40s_linear_infinite]' : ''}`}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            ref={trackRef}
+            className="flex space-x-8 transition-transform duration-100"
           >
             {brands.concat(brands).map((brand, index) => (
               <motion.div
